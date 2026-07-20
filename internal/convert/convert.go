@@ -53,12 +53,21 @@ func File(path, outDir string, widthPx int, sofficePath string) (string, int, er
 }
 
 // toPDF converte uma apresentação em PDF via LibreOffice headless e retorna
-// o caminho do PDF gerado em outDir.
+// o caminho do PDF gerado em outDir. Cada chamada roda com um perfil de
+// usuário isolado e descartável: instâncias headless do LibreOffice não são
+// seguras para rodar concorrentemente sob o mesmo perfil (disputa de lock).
 func toPDF(path, outDir, sofficePath string) (string, error) {
 	if sofficePath == "" {
 		return "", fmt.Errorf("LibreOffice é necessário para converter %s", filepath.Base(path))
 	}
-	cmd := exec.Command(sofficePath, "--headless", "--norestore", "--convert-to", "pdf", "--outdir", outDir, path)
+	profileDir, err := os.MkdirTemp("", "holyrics-converter-profile-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(profileDir)
+
+	userInstallation := "-env:UserInstallation=" + fileURL(profileDir)
+	cmd := exec.Command(sofficePath, "--headless", "--norestore", userInstallation, "--convert-to", "pdf", "--outdir", outDir, path)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("libreoffice falhou: %w: %s", err, strings.TrimSpace(string(out)))
@@ -69,6 +78,20 @@ func toPDF(path, outDir, sofficePath string) (string, error) {
 		return "", fmt.Errorf("libreoffice não gerou o PDF esperado (%s): %s", name, strings.TrimSpace(string(out)))
 	}
 	return pdfPath, nil
+}
+
+// fileURL converte um caminho de sistema de arquivos absoluto em uma URL
+// file:// aceita pelo LibreOffice, inclusive em caminhos Windows (C:\...).
+func fileURL(dir string) string {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		abs = dir
+	}
+	abs = filepath.ToSlash(abs)
+	if !strings.HasPrefix(abs, "/") {
+		abs = "/" + abs
+	}
+	return "file://" + abs
 }
 
 // pdfToPNG renderiza cada página do PDF como slide-NNN.png em dest,

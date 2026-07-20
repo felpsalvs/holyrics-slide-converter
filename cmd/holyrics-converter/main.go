@@ -66,6 +66,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "Config criado em %s. Ajuste pasta_entrada e pasta_saida e rode novamente.\n", path)
 		return exitOK
 	}
+	if err := config.Validate(&cfg); err != nil {
+		fmt.Fprintf(stderr, "config inválido: %v\n", err)
+		return exitErro
+	}
 
 	sofficePath, err := soffice.Find(cfg.CaminhoSoffice)
 	if err != nil {
@@ -90,7 +94,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return err
 	}
 
-	if err := watcher.Run(ctx, cfg.PastaEntrada, proc); err != nil && !errors.Is(err, context.Canceled) {
+	if err := watcher.Run(ctx, cfg.PastaEntrada, cfg.ConversoesSimultaneas, proc); err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintf(stderr, "watcher encerrado com erro: %v\n", err)
 		return exitErro
 	}
