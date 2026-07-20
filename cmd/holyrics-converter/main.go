@@ -75,9 +75,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		slog.Warn("LibreOffice não encontrado; apenas PDFs poderão ser convertidos", "erro", err)
 	}
+	toPDF := func(path, outDir string) (string, error) {
+		return soffice.ToPDF(sofficePath, path, outDir)
+	}
 
 	if *once != "" {
-		dest, n, err := convert.File(*once, cfg.PastaSaida, cfg.LarguraPx, sofficePath)
+		dest, n, err := convert.File(*once, cfg.PastaSaida, cfg.LarguraPx, toPDF)
 		if err != nil {
 			fmt.Fprintf(stderr, "falha ao converter %s: %v\n", *once, err)
 			return exitErro
@@ -90,7 +93,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	defer stop()
 
 	proc := func(path string) error {
-		_, _, err := convert.File(path, cfg.PastaSaida, cfg.LarguraPx, sofficePath)
+		_, _, err := convert.File(path, cfg.PastaSaida, cfg.LarguraPx, toPDF)
 		return err
 	}
 
