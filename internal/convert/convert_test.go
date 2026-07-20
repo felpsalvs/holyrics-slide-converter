@@ -66,16 +66,18 @@ func TestFilePPTXNeedsSoffice(t *testing.T) {
 	}
 }
 
-// TestFilePPTX roda a conversão completa de apresentação quando o LibreOffice
-// está instalado na máquina; caso contrário é pulado.
-func TestFilePPTX(t *testing.T) {
+// TestFileODP roda a conversão completa ODP->PDF->PNG quando o LibreOffice
+// está instalado na máquina; caso contrário é pulado. Se o LibreOffice
+// estiver instalado mas a fixture faltar, falha em vez de pular: um Skip
+// silencioso aqui já deu falso senso de cobertura no passado.
+func TestFileODP(t *testing.T) {
 	sofficePath, err := soffice.Find("")
 	if err != nil {
 		t.Skipf("LibreOffice não instalado: %v", err)
 	}
 	src := filepath.Join("..", "..", "tests", "fixtures", "sample.odp")
 	if _, err := os.Stat(src); err != nil {
-		t.Skipf("fixture %s ausente", src)
+		t.Fatalf("fixture %s ausente (LibreOffice está instalado, então este caminho deveria ser testado): %v", src, err)
 	}
 	out := t.TempDir()
 	toPDF := func(path, outDir string) (string, error) {

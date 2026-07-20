@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: go build
+        run: go build ./...
+
+      - name: go build (binário real)
+        run: go build -o holyrics-converter ./cmd/holyrics-converter
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: gofmt
+        run: |
+          fmt_out="$(gofmt -l .)"
+          if [ -n "$fmt_out" ]; then
+            echo "Arquivos não formatados (rode gofmt -w .):"
+            echo "$fmt_out"
+            exit 1
+          fi
+
+      - name: instalar LibreOffice
+        run: sudo apt-get update && sudo apt-get install -y libreoffice
+
+      - name: go test
+        run: go test ./... -race
