@@ -25,6 +25,9 @@ const (
 	exitUso  = 2
 )
 
+// versao é injetada no build pelo GoReleaser via -ldflags.
+var versao = "dev"
+
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
@@ -35,8 +38,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	once := fs.String("once", "", "converte um único arquivo e sai, sem monitorar a pasta")
 	configPath := fs.String("config", "", "caminho alternativo para o config.json")
 	logLevel := fs.String("log-level", "info", "nível de log: debug, info, warn, error")
+	showVersion := fs.Bool("version", false, "mostra a versão e sai")
 	if err := fs.Parse(args); err != nil {
 		return exitUso
+	}
+	if *showVersion {
+		fmt.Fprintf(stdout, "holyrics-converter %s\n", versao)
+		return exitOK
 	}
 
 	level, err := parseLevel(*logLevel)

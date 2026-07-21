@@ -1,0 +1,93 @@
+name: Release
+
+# A conversão de PDF (go-fitz/MuPDF) exige CGO com a lib estática embutida,
+# então cada binário precisa ser compilado nativamente no seu sistema alvo —
+# por isso a matriz de runners em vez de cross-compile num runner só.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            label: windows_intel
+          - runner: macos-latest
+            label: mac_apple-silicon
+          - runner: macos-15-intel
+            label: mac_intel
+          - runner: ubuntu-latest
+            label: linux_intel
+          - runner: ubuntu-24.04-arm
+            label: linux_arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          EXT=""
+          if [ "$RUNNER_OS" = "Windows" ]; then EXT=".exe"; fi
+          go build -trimpath \
+            -ldflags "-s -w -X main.versao=${GITHUB_REF_NAME#v}" \
+            -o "holyrics-converter${EXT}" ./cmd/holyrics-converter
+          ./holyrics-converter${EXT} --version
+
+      - name: Package
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NAME="holyrics-converter_${VERSION}_${{ matrix.label }}"
+          mkdir "$NAME"
+          cp holyrics-converter* COMO-USAR.txt LICENSE README.md "$NAME"/
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "$NAME.zip" "$NAME" > /dev/null
+          else
+            zip -qr "$NAME.zip" "$NAME"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}
+          path: "*.zip"
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: cd dist && sha256sum *.zip > checksums.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            **Primeira vez usando?** Baixe o zip do seu sistema, extraia e siga o passo a passo do arquivo `COMO-USAR.txt` (ou veja o [README](https://github.com/felpsalvs/holyrics-slide-converter#readme)).
+
+            | Sistema | Arquivo |
+            | --- | --- |
+            | Windows | `windows_intel.zip` |
+            | Mac com chip Apple (M1/M2/M3/M4) | `mac_apple-silicon.zip` |
+            | Mac com chip Intel | `mac_intel.zip` |
+            | Linux | `linux_intel.zip` / `linux_arm64.zip` |

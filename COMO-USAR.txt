@@ -1,0 +1,62 @@
+HOLYRICS SLIDE CONVERTER — COMO USAR
+=====================================
+
+O que ele faz:
+Converte arquivos PowerPoint (.pptx) e PDF em imagens, prontas para
+usar no Holyrics — sem precisar do Office pago.
+
+PASSO 1 — Rodar pela primeira vez
+----------------------------------
+Windows: dê dois cliques no arquivo "holyrics-converter-windows-amd64.exe"
+Mac:     abra o Terminal, arraste o arquivo pra ele e aperte Enter
+         (se aparecer aviso de segurança, veja "Problemas comuns" abaixo)
+
+Na primeira vez ele vai criar duas pastas e fechar sozinho:
+
+  Windows: C:\Users\SEU_USUARIO\HolyricsConverter\entrada
+  Mac:     /Users/SEU_USUARIO/HolyricsConverter/entrada
+
+PASSO 2 — Apontar a pasta de saída pra biblioteca do Holyrics
+----------------------------------------------------------------
+Abra o arquivo de configuração que foi criado:
+
+  Windows: C:\Users\SEU_USUARIO\HolyricsConverter\config.json
+  Mac:     /Users/SEU_USUARIO/HolyricsConverter/config.json
+
+Troque o valor de "pasta_saida" para dentro da pasta de imagens do
+Holyrics, por exemplo:
+
+  "pasta_saida": "C:\\Users\\SEU_USUARIO\\Documents\\Holyrics\\Holyrics\\files\\media\\images\\Convertidos"
+
+Salve o arquivo.
+
+PASSO 3 — Usar no dia a dia
+------------------------------
+Dê dois cliques no programa de novo e deixe a janela aberta.
+Copie o PowerPoint ou PDF que quer converter para a pasta "entrada".
+Em poucos segundos as imagens aparecem prontas dentro da pasta que
+você configurou — e já ficam disponíveis lá no Holyrics.
+
+O arquivo original é movido sozinho para "entrada/processados".
+Se der algum erro, ele vai para "entrada/erros" (o motivo aparece
+na tela do programa).
+
+IMPORTANTE — PowerPoint (.pptx)
+----------------------------------
+Para converter PowerPoint (não PDF), é necessário instalar o
+LibreOffice (gratuito): https://pt-br.libreoffice.org/
+Sem ele, só a conversão de PDF funciona.
+PDF funciona direto, sem precisar instalar nada além do programa.
+
+PROBLEMAS COMUNS
+-------------------
+Windows disse "O Windows protegeu o computador":
+  Clique em "Mais informações" e depois em "Executar assim mesmo".
+  (Isso aparece porque o programa não tem certificado pago da
+  Microsoft — é normal para programas pequenos como esse.)
+
+Mac disse que não pode abrir por ser de "desenvolvedor não identificado":
+  Vá em Ajustes do Sistema > Privacidade e Segurança, e clique em
+  "Abrir Assim Mesmo" ao lado do aviso sobre o holyrics-converter.
+
+Qualquer dúvida ou problema, me chama!

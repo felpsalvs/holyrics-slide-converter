@@ -1,0 +1,58 @@
+name: 🐛 Relatar um problema
+description: Algo não funcionou como esperado
+labels: [bug]
+body:
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema operacional
+      options:
+        - Windows
+        - Mac (chip Apple - M1/M2/M3/M4)
+        - Mac (chip Intel)
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do programa
+      description: Rode `holyrics-converter --version` ou veja o nome do zip que baixou
+      placeholder: "ex.: 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tipo-arquivo
+    attributes:
+      label: Tipo de arquivo que estava convertendo
+      options:
+        - PDF
+        - PowerPoint (.pptx / .ppt)
+        - Apresentação LibreOffice (.odp)
+        - Nenhum / o programa nem abriu
+    validations:
+      required: true
+
+  - type: textarea
+    id: o-que-aconteceu
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o problema. Se apareceu mensagem de erro na tela, copie e cole aqui (ou mande print).
+    validations:
+      required: true
+
+  - type: textarea
+    id: o-que-esperava
+    attributes:
+      label: O que você esperava que acontecesse?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: libreoffice
+    attributes:
+      label: LibreOffice
+      options:
+        - label: Tenho o LibreOffice instalado neste computador

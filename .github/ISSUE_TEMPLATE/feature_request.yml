@@ -1,0 +1,19 @@
+name: 💡 Sugerir uma melhoria
+description: Uma ideia para o programa atender melhor a sua igreja
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual dificuldade você tem hoje?
+      description: Conte o cenário real na sua igreja — isso ajuda mais do que a solução em si.
+      placeholder: "ex.: Toda semana recebo os slides do pregador por WhatsApp e preciso..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solucao
+    attributes:
+      label: Como você imagina que o programa poderia resolver?
+    validations:
+      required: true
