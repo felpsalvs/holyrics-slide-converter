@@ -4,8 +4,16 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+)
+
+// MinLarguraPx e MaxLarguraPx delimitam a faixa sã para LarguraPx, evitando
+// PNGs gigantes/estouro de memória por erro de digitação no config.
+const (
+	MinLarguraPx = 100
+	MaxLarguraPx = 8000
 )
 
 // Config define as opções do conversor, salvas em config.json.
@@ -21,6 +29,9 @@ type Config struct {
 	// CaminhoSoffice permite fixar o caminho do LibreOffice (soffice).
 	// Vazio = detectar automaticamente.
 	CaminhoSoffice string `json:"caminho_soffice"`
+	// ConversoesSimultaneas limita quantas conversões rodam em paralelo.
+	// LibreOffice headless não é seguro com muitas instâncias simultâneas.
+	ConversoesSimultaneas int `json:"conversoes_simultaneas"`
 }
 
 // DefaultPath retorna o caminho padrão do config.json, ao lado da pasta
@@ -40,9 +51,10 @@ func defaults() (Config, error) {
 	}
 	base := filepath.Join(home, "HolyricsConverter")
 	return Config{
-		PastaEntrada: filepath.Join(base, "entrada"),
-		PastaSaida:   filepath.Join(base, "convertidos"),
-		LarguraPx:    1920,
+		PastaEntrada:          filepath.Join(base, "entrada"),
+		PastaSaida:            filepath.Join(base, "convertidos"),
+		LarguraPx:             1920,
+		ConversoesSimultaneas: 1,
 	}, nil
 }
 
@@ -77,6 +89,52 @@ func Load(path string) (cfg Config, created bool, err error) {
 		cfg.LarguraPx = 1920
 	}
 	return cfg, false, nil
+}
+
+// Validate confere se cfg é seguro para operar: pastas distintas e
+// graváveis, e ajusta em silêncio (com aviso no log) valores fora de uma
+// faixa sã. Deve ser chamado antes do watcher subir, para que uma pasta
+// sem permissão seja detectada na inicialização e não no primeiro evento
+// ao vivo durante um culto.
+func Validate(cfg *Config) error {
+	if cfg.PastaEntrada == cfg.PastaSaida {
+		return fmt.Errorf("pasta_entrada e pasta_saida não podem ser a mesma pasta: %s", cfg.PastaEntrada)
+	}
+	for _, dir := range []string{cfg.PastaEntrada, cfg.PastaSaida} {
+		if err := ensureWritable(dir); err != nil {
+			return err
+		}
+	}
+	if cfg.LarguraPx < MinLarguraPx || cfg.LarguraPx > MaxLarguraPx {
+		clamped := clamp(cfg.LarguraPx, MinLarguraPx, MaxLarguraPx)
+		slog.Warn("largura_px fora da faixa permitida, ajustando", "valor", cfg.LarguraPx, "ajustado_para", clamped)
+		cfg.LarguraPx = clamped
+	}
+	if cfg.ConversoesSimultaneas <= 0 {
+		cfg.ConversoesSimultaneas = 1
+	}
+	return nil
+}
+
+func ensureWritable(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("pasta %s: %w", dir, err)
+	}
+	probe := filepath.Join(dir, ".holyrics-write-test")
+	if err := os.WriteFile(probe, []byte("x"), 0o644); err != nil {
+		return fmt.Errorf("pasta %s não é gravável: %w", dir, err)
+	}
+	return os.Remove(probe)
+}
+
+func clamp(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
 
 func save(path string, cfg Config) error {

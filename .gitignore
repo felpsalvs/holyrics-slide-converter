@@ -1,5 +1,5 @@
-holyrics-converter
-holyrics-converter.exe
+/holyrics-converter
+/holyrics-converter.exe
 dist/
 *.log
 .DS_Store

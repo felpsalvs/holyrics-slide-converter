@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,8 +58,9 @@ type Processar func(path string) error
 
 // Run monitora dir até o ctx ser cancelado. Arquivos já presentes na pasta
 // ao iniciar também são processados. Após converter, o original vai para
-// dir/processados; em falha, para dir/erros.
-func Run(ctx context.Context, dir string, proc Processar) error {
+// dir/processados; em falha, para dir/erros. maxConcurrent limita quantas
+// conversões (proc) rodam em paralelo; valores <= 0 são tratados como 1.
+func Run(ctx context.Context, dir string, maxConcurrent int, proc Processar) error {
 	for _, sub := range []string{dir, filepath.Join(dir, "processados"), filepath.Join(dir, "erros")} {
 		if err := os.MkdirAll(sub, 0o755); err != nil {
 			return err
@@ -74,6 +75,11 @@ func Run(ctx context.Context, dir string, proc Processar) error {
 	if err := w.Add(dir); err != nil {
 		return err
 	}
+
+	if maxConcurrent <= 0 {
+		maxConcurrent = 1
+	}
+	sem := make(chan struct{}, maxConcurrent)
 
 	var mu sync.Mutex
 	emAndamento := map[string]bool{}
@@ -94,12 +100,16 @@ func Run(ctx context.Context, dir string, proc Processar) error {
 
 		if err := EsperarEstabilizar(path, 500*time.Millisecond, 2*time.Minute); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
-				log.Printf("[ERRO] %s: %v", filepath.Base(path), err)
+				slog.Error("arquivo não estabilizou", "arquivo", filepath.Base(path), "erro", err)
 			}
 			return
 		}
+
+		sem <- struct{}{}
+		defer func() { <-sem }()
+
 		if err := proc(path); err != nil {
-			log.Printf("[ERRO] falha ao converter %s: %v", filepath.Base(path), err)
+			slog.Error("falha ao converter", "arquivo", filepath.Base(path), "erro", err)
 			mover(path, filepath.Join(dir, "erros"))
 			return
 		}
@@ -118,7 +128,7 @@ func Run(ctx context.Context, dir string, proc Processar) error {
 		go handle(filepath.Join(dir, e.Name()))
 	}
 
-	log.Printf("Monitorando %s (Ctrl+C para sair)", dir)
+	slog.Info("Monitorando (Ctrl+C para sair)", "pasta", dir, "conversoes_simultaneas", maxConcurrent)
 	for {
 		select {
 		case <-ctx.Done():
@@ -141,7 +151,7 @@ func Run(ctx context.Context, dir string, proc Processar) error {
 			if !ok {
 				return nil
 			}
-			log.Printf("[ERRO] watcher: %v", err)
+			slog.Error("watcher", "erro", err)
 		}
 	}
 }
@@ -154,6 +164,6 @@ func mover(path, destDir string) {
 		dest = strings.TrimSuffix(dest, ext) + "-" + time.Now().Format("20060102-150405") + ext
 	}
 	if err := os.Rename(path, dest); err != nil {
-		log.Printf("[ERRO] não foi possível mover %s: %v", filepath.Base(path), err)
+		slog.Error("não foi possível mover", "arquivo", filepath.Base(path), "erro", err)
 	}
 }

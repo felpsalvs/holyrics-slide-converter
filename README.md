@@ -68,7 +68,7 @@ go build -o holyrics-converter ./cmd/holyrics-converter
 go test ./...
 ```
 
-O teste completo de PPTX roda apenas se o LibreOffice estiver instalado (senão é pulado).
+O teste completo de conversão de apresentação (ODP → PDF → PNG) roda apenas se o LibreOffice estiver instalado (senão é pulado).
 
 ## Roadmap
 

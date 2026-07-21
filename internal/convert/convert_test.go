@@ -24,7 +24,7 @@ func TestSupportedExt(t *testing.T) {
 
 func TestFilePDF(t *testing.T) {
 	out := t.TempDir()
-	dest, n, err := File(filepath.Join("..", "..", "tests", "fixtures", "sample.pdf"), out, 1920, "")
+	dest, n, err := File(filepath.Join("..", "..", "tests", "fixtures", "sample.pdf"), out, 1920, nil)
 	if err != nil {
 		t.Fatalf("File: %v", err)
 	}
@@ -52,30 +52,38 @@ func TestFilePDF(t *testing.T) {
 }
 
 func TestFileUnsupported(t *testing.T) {
-	if _, _, err := File("nota.txt", t.TempDir(), 1920, ""); err == nil {
+	if _, _, err := File("nota.txt", t.TempDir(), 1920, nil); err == nil {
 		t.Fatal("esperado erro para extensão não suportada")
 	}
 }
 
 func TestFilePPTXNeedsSoffice(t *testing.T) {
-	if _, _, err := File("slides.pptx", t.TempDir(), 1920, ""); err == nil {
+	toPDF := func(path, outDir string) (string, error) {
+		return soffice.ToPDF("", path, outDir)
+	}
+	if _, _, err := File("slides.pptx", t.TempDir(), 1920, toPDF); err == nil {
 		t.Fatal("esperado erro quando LibreOffice não está configurado")
 	}
 }
 
-// TestFilePPTX roda a conversão completa de apresentação quando o LibreOffice
-// está instalado na máquina; caso contrário é pulado.
-func TestFilePPTX(t *testing.T) {
+// TestFileODP roda a conversão completa ODP->PDF->PNG quando o LibreOffice
+// está instalado na máquina; caso contrário é pulado. Se o LibreOffice
+// estiver instalado mas a fixture faltar, falha em vez de pular: um Skip
+// silencioso aqui já deu falso senso de cobertura no passado.
+func TestFileODP(t *testing.T) {
 	sofficePath, err := soffice.Find("")
 	if err != nil {
 		t.Skipf("LibreOffice não instalado: %v", err)
 	}
 	src := filepath.Join("..", "..", "tests", "fixtures", "sample.odp")
 	if _, err := os.Stat(src); err != nil {
-		t.Skipf("fixture %s ausente", src)
+		t.Fatalf("fixture %s ausente (LibreOffice está instalado, então este caminho deveria ser testado): %v", src, err)
 	}
 	out := t.TempDir()
-	dest, n, err := File(src, out, 1280, sofficePath)
+	toPDF := func(path, outDir string) (string, error) {
+		return soffice.ToPDF(sofficePath, path, outDir)
+	}
+	dest, n, err := File(src, out, 1280, toPDF)
 	if err != nil {
 		t.Fatalf("File: %v", err)
 	}

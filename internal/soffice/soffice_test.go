@@ -65,3 +65,16 @@ func TestFindMissing(t *testing.T) {
 		t.Fatal("esperado erro quando nada é encontrado")
 	}
 }
+
+func TestFileURL(t *testing.T) {
+	got := fileURL("/tmp/perfil-123")
+	if got != "file:///tmp/perfil-123" {
+		t.Fatalf("fileURL = %q, esperado file:///tmp/perfil-123", got)
+	}
+}
+
+func TestToPDFSemSoffice(t *testing.T) {
+	if _, err := ToPDF("", "slides.pptx", t.TempDir()); err == nil {
+		t.Fatal("esperado erro quando sofficePath está vazio")
+	}
+}
