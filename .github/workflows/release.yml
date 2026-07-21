@@ -52,8 +52,10 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           NAME="holyrics-converter_${VERSION}_${{ matrix.label }}"
+          EXT=""
+          if [ "$RUNNER_OS" = "Windows" ]; then EXT=".exe"; fi
           mkdir "$NAME"
-          cp holyrics-converter* COMO-USAR.txt LICENSE README.md "$NAME"/
+          cp "holyrics-converter${EXT}" COMO-USAR.txt LICENSE README.md "$NAME"/
           if [ "$RUNNER_OS" = "Windows" ]; then
             7z a "$NAME.zip" "$NAME" > /dev/null
           else
